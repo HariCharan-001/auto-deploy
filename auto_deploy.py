@@ -1,5 +1,6 @@
 import os
 import time
+import sys
 
 saarang_dir = '/var/www/saarang2024'
 
@@ -54,4 +55,4 @@ while(True):
     repo_list.write(new_content)
     repo_list.close()
 
-    time.sleep(15)
+    time.sleep(sys.argv[1])
