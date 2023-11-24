@@ -2,7 +2,7 @@ import os
 import time
 import sys
 
-saarang_dir = '/var/www/saarang2024'
+saarang_dir = '/var/www/Saarang2024'
 sleep_time = sys.argv[1]
 debug = False
 
@@ -25,7 +25,7 @@ def frontend_deploy(repo, commit_id):
 
     os.system('sudo systemctl restart nginx')
 
-    return {True, latest_commit_id}
+    return [True, latest_commit_id]
 
 def backend_deploy(repo, commit_id):
     os.chdir(saarang_dir + '/' + repo)
@@ -42,7 +42,7 @@ def backend_deploy(repo, commit_id):
     os.system('yarn build')
     os.system('pm2 start dist/index.js --name ' + repo + ' -- prod Dev24Ops$') 
 
-    return {True, latest_commit_id}
+    return [True, latest_commit_id]
 
 while(True):
     repo_list = open('repo_list.txt', 'r')
@@ -50,7 +50,8 @@ while(True):
 
     for line in repo_list:
         repo, type, commit_id = line.split()
-        
+        result = None
+
         if type == 'frontend':
             result = frontend_deploy(repo, commit_id)
 
