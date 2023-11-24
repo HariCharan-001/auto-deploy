@@ -17,7 +17,7 @@ def frontend_deploy(repo, commit_id):
         print("Repo", repo, '\n', "Commit ID", commit_id, '\n', "Latest Commit ID", latest_commit_id, '\n')
 
     if latest_commit_id == commit_id:
-        return False
+        return latest_commit_id
 
     os.system('git pull')
     os.system('npm install')
@@ -25,7 +25,7 @@ def frontend_deploy(repo, commit_id):
 
     os.system('sudo systemctl restart nginx')
 
-    return [True, latest_commit_id]
+    return latest_commit_id
 
 def backend_deploy(repo, commit_id):
     os.chdir(saarang_dir + '/' + repo)
@@ -35,14 +35,14 @@ def backend_deploy(repo, commit_id):
         print("Repo", repo, '\n', "Commit ID", commit_id, '\n', "Latest Commit ID", latest_commit_id, '\n')
 
     if latest_commit_id == commit_id:
-        return False
+        return latest_commit_id
 
     os.system('git pull')
     os.system('yarn install')
     os.system('yarn build')
     os.system('pm2 start dist/index.js --name ' + repo + ' -- prod Dev24Ops$') 
 
-    return [True, latest_commit_id]
+    return latest_commit_id
 
 while(True):
     try:
@@ -51,16 +51,14 @@ while(True):
 
         for line in repo_list:
             repo, type, commit_id = line.split()
-            result = None
 
             if type == 'frontend':
-                result = frontend_deploy(repo, commit_id)
+                commit_id = frontend_deploy(repo, commit_id)
 
             elif type == 'backend':
-                result = backend_deploy(repo, commit_id)
+                commit_id = backend_deploy(repo, commit_id)
 
-            if result:
-                new_content += repo + ' ' + type + ' ' + result[1] + '\n'
+            new_content += repo + ' ' + type + ' ' + commit_id + '\n'
 
         repo_list.close()
 
