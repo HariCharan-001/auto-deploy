@@ -49,9 +49,11 @@ while(True):
     try:
         repo_list = open('repo_list.txt', 'r')
         new_content = ''
+        old_content = ''
 
         for line in repo_list:
             repo, type, commit_id = line.split()
+            old_content += line
 
             if type == 'frontend':
                 commit_id = frontend_deploy(repo, commit_id)
@@ -63,11 +65,13 @@ while(True):
 
         repo_list.close()
 
-        with open('repo_list.txt', 'w') as repo_list:
-            repo_list.write(new_content)
-            print(new_content)
+        if(not (new_content == old_content) ):
+            with open('repo_list.txt', 'w') as repo_list:
+                repo_list.write(new_content)
+                repo_list.flush()
+                os.fsync(repo_list.fileno())
             
-        repo_list.close()
+            repo_list.close()
 
         time.sleep(sleep_time)
     
