@@ -45,26 +45,31 @@ def backend_deploy(repo, commit_id):
     return [True, latest_commit_id]
 
 while(True):
-    repo_list = open('repo_list.txt', 'r')
-    new_content = ''
+    try:
+        repo_list = open('repo_list.txt', 'r')
+        new_content = ''
 
-    for line in repo_list:
-        repo, type, commit_id = line.split()
-        result = None
+        for line in repo_list:
+            repo, type, commit_id = line.split()
+            result = None
 
-        if type == 'frontend':
-            result = frontend_deploy(repo, commit_id)
+            if type == 'frontend':
+                result = frontend_deploy(repo, commit_id)
 
-        elif type == 'backend':
-            result = backend_deploy(repo, commit_id)
+            elif type == 'backend':
+                result = backend_deploy(repo, commit_id)
 
-        if result:
-            new_content += repo + ' ' + type + ' ' + result[1] + '\n'
+            if result:
+                new_content += repo + ' ' + type + ' ' + result[1] + '\n'
 
-    repo_list.close()
+        repo_list.close()
 
-    repo_list = open('repo_list.txt', 'w')
-    repo_list.write(new_content)
-    repo_list.close()
+        repo_list = open('repo_list.txt', 'w')
+        repo_list.write(new_content)
+        repo_list.close()
 
-    time.sleep(sleep_time)
+        time.sleep(int(sleep_time))
+    
+    except Exception as e:
+        print(e)
+        time.sleep(sleep_time)
