@@ -3,7 +3,7 @@ import time
 import sys
 
 saarang_dir = '/var/www/Saarang2024'
-sleep_time = sys.argv[1]
+sleep_time = int(sys.argv[1])
 debug = False
 
 if(len(sys.argv) > 2):
@@ -40,6 +40,7 @@ def backend_deploy(repo, commit_id):
     os.system('git pull')
     os.system('yarn install')
     os.system('yarn build')
+    os.system('pm2 stop ' + repo)
     os.system('pm2 start dist/index.js --name ' + repo + ' -- prod Dev24Ops$') 
 
     return latest_commit_id
@@ -62,11 +63,13 @@ while(True):
 
         repo_list.close()
 
-        repo_list = open('repo_list.txt', 'w')
-        repo_list.write(new_content)
+        with open('repo_list.txt', 'w') as repo_list:
+            repo_list.write(new_content)
+            print(new_content)
+            
         repo_list.close()
 
-        time.sleep(int(sleep_time))
+        time.sleep(sleep_time)
     
     except Exception as e:
         print(e)
