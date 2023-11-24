@@ -66,10 +66,11 @@ while(True):
         repo_list.close()
 
         if(not (new_content == old_content) ):
-            with open('repo_list.txt', 'w') as repo_list:
-                repo_list.write(new_content)
+            with open('repo_list.txt', 'wb', 0) as repo_list:
+                repo_list.write(new_content.encode())
                 repo_list.flush()
                 os.fsync(repo_list.fileno())
+                print("Updated repo_list.txt")
             
             repo_list.close()
 
