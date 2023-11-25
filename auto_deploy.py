@@ -11,8 +11,9 @@ if(len(sys.argv) > 2):
 
 def frontend_deploy(repo, commit_id):
     os.chdir(saarang_dir + '/' + repo)
-    latest_commit_id = os.popen('git rev-parse HEAD').read().strip()
-
+    os.system('git fetch origin')
+    latest_commit_id = os.popen('git rev-parse origin/main').read().strip()
+    
     if(debug == 'true'):
         print("Repo", repo, '\n', "Commit ID", commit_id, '\n', "Latest Commit ID", latest_commit_id, '\n')
 
