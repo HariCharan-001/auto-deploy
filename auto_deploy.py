@@ -3,19 +3,16 @@ import time
 import sys
 
 saarang_dir = '/var/www/Saarang2024'
-sleep_time = int(sys.argv[1])
-debug = False
-
-if(len(sys.argv) > 2):
-    debug = sys.argv[2]
+sleep_time = int(30)
+if(len(sys.argv) > 1):
+    sleep_time = int(sys.argv[1])
 
 def frontend_deploy(repo, commit_id):
     os.chdir(saarang_dir + '/' + repo)
     os.system('git fetch origin')
     latest_commit_id = os.popen('git rev-parse origin/main').read().strip()
     
-    if(debug == 'true'):
-        print("Repo", repo, '\n', "Commit ID", commit_id, '\n', "Latest Commit ID", latest_commit_id, '\n')
+    print("Repo", repo, '\n', "Commit ID", commit_id, '\n', "Latest Commit ID", latest_commit_id, '\n')
 
     if latest_commit_id == commit_id:
         return latest_commit_id
@@ -31,8 +28,7 @@ def backend_deploy(repo, commit_id):
     os.chdir(saarang_dir + '/' + repo)
     latest_commit_id = os.popen('git rev-parse HEAD').read().strip()
 
-    if(debug == 'true'):
-        print("Repo", repo, '\n', "Commit ID", commit_id, '\n', "Latest Commit ID", latest_commit_id, '\n')
+    print("Repo", repo, '\n', "Commit ID", commit_id, '\n', "Latest Commit ID", latest_commit_id, '\n')
 
     if latest_commit_id == commit_id:
         return latest_commit_id
