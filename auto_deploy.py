@@ -23,8 +23,10 @@ def frontend_deploy(repo, commit_id):
     os.system('git pull')
     os.system('npm install')
     os.system('npm run build')
+    console.log('build successful')
 
     os.system('sudo systemctl restart nginx')
+    console.log('Restarted nginx')
 
     return latest_commit_id
 
@@ -41,9 +43,12 @@ def backend_deploy(repo, commit_id):
     os.system('git pull')
     os.system('yarn install')
     os.system('yarn build')
+    console.log('build successful')
+
     os.system('pm2 stop ' + repo)
     os.system('pm2 start dist/index.js --name ' + repo + ' -- prod Dev24Ops$') 
-
+    console.log('Restarted ' + repo)
+    
     return latest_commit_id
 
 while(True):
