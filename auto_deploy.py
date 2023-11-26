@@ -7,11 +7,14 @@ sleep_time = int(30)
 if(len(sys.argv) > 1):
     sleep_time = int(sys.argv[1])
 
-def frontend_deploy(repo, commit_id):
+def get_latest_commit_id(repo):
     os.chdir(saarang_dir + '/' + repo)
     os.system('git fetch origin')
     latest_commit_id = os.popen('git rev-parse origin/main').read().strip()
-    
+    return latest_commit_id
+
+def frontend_deploy(repo, commit_id):
+    latest_commit_id = get_latest_commit_id(repo)
     print("Repo", repo, '\n', "Commit ID", commit_id, '\n', "Latest Commit ID", latest_commit_id, '\n')
 
     if latest_commit_id == commit_id:
@@ -25,9 +28,7 @@ def frontend_deploy(repo, commit_id):
     return latest_commit_id
 
 def backend_deploy(repo, commit_id):
-    os.chdir(saarang_dir + '/' + repo)
-    latest_commit_id = os.popen('git rev-parse HEAD').read().strip()
-
+    latest_commit_id = get_latest_commit_id(repo)
     print("Repo", repo, '\n', "Commit ID", commit_id, '\n', "Latest Commit ID", latest_commit_id, '\n')
 
     if latest_commit_id == commit_id:
@@ -47,7 +48,7 @@ def backend_deploy(repo, commit_id):
 while(True):
     try:
         print("Checking for updates: " + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-        
+
         repo_list = open('repo_list.txt', 'r')
         new_content = ''
         old_content = ''
