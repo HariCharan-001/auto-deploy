@@ -46,6 +46,8 @@ def backend_deploy(repo, commit_id):
 
 while(True):
     try:
+        print("Checking for updates: " + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+        
         repo_list = open('repo_list.txt', 'r')
         new_content = ''
         old_content = ''
