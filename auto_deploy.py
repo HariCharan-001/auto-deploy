@@ -2,13 +2,18 @@ import os
 import time
 import sys
 
-saarang_dir = '/var/www/Saarang2024'
+base_dir = '/var/www/'
+db_pwd = 'postgres'
 sleep_time = int(30)
+
 if(len(sys.argv) > 1):
-    sleep_time = int(sys.argv[1])
+    db_pwd = sys.argv[1]
+
+if(len(sys.argv) > 2):
+    sleep_time = int(sys.argv[2])
 
 def get_latest_commit_id(repo):
-    os.chdir(saarang_dir + '/' + repo)
+    os.chdir(base_dir + '/' + repo)
     os.system('git fetch origin')
     latest_commit_id = os.popen('git rev-parse origin/main').read().strip()
     return latest_commit_id
@@ -40,7 +45,7 @@ def backend_deploy(repo, commit_id):
     print('build successful')
 
     os.system('pm2 stop ' + repo)
-    os.system('pm2 start dist/index.js --name ' + repo + ' -- prod Dev24Ops$') 
+    os.system('pm2 start dist/index.js --name ' + repo + ' -- prod ' + db_pwd)
     print('Restarted ' + repo)
 
     return latest_commit_id
