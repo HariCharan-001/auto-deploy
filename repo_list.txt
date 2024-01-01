@@ -1,6 +1,7 @@
 Saarang2024/sales-frontend frontend 0
+Saarang2024/main-frontend frontend 0
+Saarang2024/main-frontend-temp frontend 0
 saarang.org/saarang-main frontend 0
-saarang.org/saarang-main-temp frontend 0
 saarang.org/accomodation_portal frontend 0
 Saarang2024/sales-backend backend 0
 saarang.org/backend2 backend 0
