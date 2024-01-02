@@ -5,6 +5,7 @@ import sys
 base_dir = '/var/www/'
 db_pwd = 'postgres'
 sleep_time = int(30)
+cur_repo = ''
 
 if(len(sys.argv) > 1):
     db_pwd = sys.argv[1]
@@ -12,40 +13,49 @@ if(len(sys.argv) > 1):
 if(len(sys.argv) > 2):
     sleep_time = int(sys.argv[2])
 
+def run_command(command):
+    log_path = './logs/' + cur_repo + '.log'
+    os.system(command + ' >> ' + log_path + ' 2>&1')
+
 def get_latest_commit_id(repo):
     os.chdir(base_dir + '/' + repo)
-    os.system('git fetch origin')
-    latest_commit_id = os.popen('git rev-parse origin/main').read().strip()
+    run_command('git pull')
+    latest_commit_id = os.popen('git rev-parse HEAD').read().strip()
+
     return latest_commit_id
 
 def frontend_deploy(repo, commit_id):
+    global cur_repo
+    cur_repo = repo.split('/')[-1]
+    
     latest_commit_id = get_latest_commit_id(repo)
     print("Repo", repo, '\n', "Commit ID", commit_id, '\n', "Latest Commit ID", latest_commit_id, '\n')
 
     if latest_commit_id == commit_id:
         return latest_commit_id
 
-    os.system('git pull')
-    os.system('npm install')
-    os.system('npm run build')
-    print('build successful')
+    run_command('npm install')
+    run_command('npm run build')
+    print('build successful for ' + repo)
 
     return latest_commit_id
 
 def backend_deploy(repo, commit_id):
+    global cur_repo
+    cur_repo = repo.split('/')[-1]
+
     latest_commit_id = get_latest_commit_id(repo)
     print("Repo", repo, '\n', "Commit ID", commit_id, '\n', "Latest Commit ID", latest_commit_id, '\n')
 
     if latest_commit_id == commit_id:
         return latest_commit_id
 
-    os.system('git pull')
-    os.system('yarn install')
-    os.system('yarn build')
-    print('build successful')
+    run_command('yarn install')
+    run_command('yarn build')
+    print('build successful for ' + repo)
 
-    os.system('pm2 stop ' + repo)
-    os.system('pm2 start dist/index.js --name ' + repo + ' -- prod ' + db_pwd)
+    run_command('pm2 stop ' + repo)
+    run_command('pm2 start dist/index.js --name ' + cur_repo + ' -- prod ' + db_pwd)
     print('Restarted ' + repo)
 
     return latest_commit_id
