@@ -14,7 +14,7 @@ if(len(sys.argv) > 2):
     sleep_time = int(sys.argv[2])
 
 def run_command(command):
-    log_path = base_dir + '/Saarang2024/auto_deploy/logs/' + cur_repo + '.log'
+    log_path = base_dir + '/Saarang2024/auto-deploy/logs/' + cur_repo + '.log'
     os.system(command + ' >> ' + log_path + ' 2>&1')
 
 def get_latest_commit_id(repo):
@@ -64,7 +64,7 @@ while(True):
     try:
         print("Checking for updates: " + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), '\n')
 
-        os.chdir(base_dir + '/Saarang2024/auto_deploy')
+        os.chdir(base_dir + '/Saarang2024/auto-deploy')
         repo_list = open('repo_list.txt', 'r')
         new_content = ''
         old_content = ''
