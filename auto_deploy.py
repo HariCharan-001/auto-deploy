@@ -64,6 +64,7 @@ while(True):
     try:
         print("Checking for updates: " + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), '\n')
 
+        os.chdir(base_dir + '/Saarang2024/auto_deploy')
         repo_list = open('repo_list.txt', 'r')
         new_content = ''
         old_content = ''
