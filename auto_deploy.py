@@ -61,15 +61,15 @@ def backend_deploy(repo, commit_id):
     return latest_commit_id
 
 while(True):
-    try:
-        print("Checking for updates: " + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), '\n')
+    print("Checking for updates: " + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), '\n')
 
-        os.chdir(base_dir + '/Saarang2024/auto-deploy')
-        repo_list = open('repo_list.txt', 'r')
-        new_content = ''
-        old_content = ''
+    os.chdir(base_dir + '/Saarang2024/auto-deploy')
+    repo_list = open('repo_list.txt', 'r')
+    new_content = ''
+    old_content = ''
 
-        for line in repo_list:
+    for line in repo_list:
+        try:
             repo, type, commit_id = line.split()
             old_content += line
 
@@ -80,20 +80,22 @@ while(True):
                 commit_id = backend_deploy(repo, commit_id)
 
             new_content += repo + ' ' + type + ' ' + commit_id + '\n'
+        
+        except Exception as e:
+            print(e)
+            continue
 
+    repo_list.close()
+
+    if(not (new_content == old_content) ):
+        with open('repo_list.txt', 'wb', 0) as repo_list:
+            repo_list.write(new_content.encode())
+            repo_list.flush()
+            os.fsync(repo_list.fileno())
+            print("Updated repo_list.txt")
+        
         repo_list.close()
 
-        if(not (new_content == old_content) ):
-            with open('repo_list.txt', 'wb', 0) as repo_list:
-                repo_list.write(new_content.encode())
-                repo_list.flush()
-                os.fsync(repo_list.fileno())
-                print("Updated repo_list.txt")
-            
-            repo_list.close()
-
-        time.sleep(sleep_time)
+    time.sleep(sleep_time)
     
-    except Exception as e:
-        print(e)
-        time.sleep(sleep_time)
+    
