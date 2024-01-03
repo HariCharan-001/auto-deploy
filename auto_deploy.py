@@ -1,11 +1,16 @@
 import os
 import time
 import sys
+import psycopg2
+import threading 
 
 base_dir = '/var/www'
 db_pwd = 'postgres'
 sleep_time = int(30)
 cur_repo = ''
+log_dir = base_dir + '/Saarang2024/auto-deploy/logs'
+univ_log_file = log_dir + './auto_deploy.log'
+repo_status = {}
 
 if(len(sys.argv) > 1):
     db_pwd = sys.argv[1]
@@ -13,89 +18,124 @@ if(len(sys.argv) > 1):
 if(len(sys.argv) > 2):
     sleep_time = int(sys.argv[2])
 
+def establish_connection():
+    try:
+        connection = psycopg2.connect(
+            user = "postgres",
+            password = "postgres",
+            host = "127.0.0.1",
+            port = "5432",
+            database = "auto_deploy"
+        )
+
+        logToFile(connection.get_dsn_parameters() + "\n")
+
+    except (Exception, psycopg2.Error) as error :
+        logToFile("Error while connecting to PostgreSQL : " + str(error)) 
+        exit()
+
+    return connection
+
+def logToFile(message):
+    global univ_log_file
+
+    with open(univ_log_file, 'a') as log:
+        log.write(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + ' ' + message + '\n')
+        log.close()
+
 def run_command(command):
-    log_path = base_dir + '/Saarang2024/auto-deploy/logs/' + cur_repo + '.log'
+    global cur_repo, log_dir
+
+    log_path = log_dir + '/' + cur_repo + '.log'
     os.system(command + ' >> ' + log_path + ' 2>&1')
 
-def get_latest_commit_id(repo):
-    os.chdir(base_dir + '/' + repo)
+def get_latest_commit_id(repo_path):
+    os.chdir(repo_path)
     run_command('git pull')
     latest_commit_id = os.popen('git rev-parse HEAD').read().strip()
 
     return latest_commit_id
 
-def frontend_deploy(repo, commit_id):
-    global cur_repo
+def update_repo(repo, latest_commit_id, repo_status):
+    global cursor, connection
+    cursor.execute("UPDATE repos SET latest_commit_id = '%s', repo_status = '%s', last_updated = '%s' WHERE repo = '%s'" % (latest_commit_id, repo_status, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), repo))
+    connection.commit()
+
+def frontend_deploy(repo, latest_commit_id):
+    global cur_repo, repo_status
     cur_repo = repo.split('/')[-1]
+
+    try:
+        run_command('npm install')
+        run_command('npm run build')
+        logToFile('build successful for ' + repo + '\n')
+
+        repo_status[cur_repo] = 'running'
+
+    except:
+        logToFile('build failed for ' + repo + '\n')
+        repo_status[cur_repo] = 'failed'
+
+    update_repo(repo, latest_commit_id, repo_status[cur_repo])
+
+def backend_deploy(repo, latest_commit_id):
+    global cur_repo, repo_status
+    cur_repo = repo.split('/')[-1]
+
+    try:
+        run_command('yarn install')
+        run_command('yarn build')
+        logToFile('build successful for ' + repo + '\n')
+
+        run_command('pm2 stop ' + repo)
+        run_command('pm2 start dist/index.js --name ' + cur_repo + ' -- prod ' + db_pwd)
+        logToFile('Restarted ' + repo)
+
+        repo_status[cur_repo] = 'running'
     
-    latest_commit_id = get_latest_commit_id(repo)
-    print("Repo", repo, '\n', "Commit ID", commit_id, '\n', "Latest Commit ID", latest_commit_id, '\n')
+    except:
+        logToFile('failed to deploy ' + repo + '\n')
+        repo_status[cur_repo] = 'failed'
 
-    if latest_commit_id == commit_id:
-        return latest_commit_id
+    update_repo(repo, latest_commit_id, repo_status[cur_repo])
 
-    run_command('npm install')
-    run_command('npm run build')
-    print('build successful for ' + repo + '\n')
 
-    return latest_commit_id
 
-def backend_deploy(repo, commit_id):
-    global cur_repo
-    cur_repo = repo.split('/')[-1]
 
-    latest_commit_id = get_latest_commit_id(repo)
-    print("Repo", repo, '\n', "Commit ID", commit_id, '\n', "Latest Commit ID", latest_commit_id, '\n')
-
-    if latest_commit_id == commit_id:
-        return latest_commit_id
-
-    run_command('yarn install')
-    run_command('yarn build')
-    print('build successful for ' + repo + '\n')
-
-    run_command('pm2 stop ' + repo)
-    run_command('pm2 start dist/index.js --name ' + cur_repo + ' -- prod ' + db_pwd)
-    print('Restarted ' + repo)
-
-    return latest_commit_id
+connection = establish_connection()
+cursor = connection.cursor()
+logToFile('Connected to PostgreSQL' + '\n' )
 
 while(True):
-    print("Checking for updates: " + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), '\n')
+    try:
+        logToFile("Checking for updates: " + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + '\n')
 
-    os.chdir(base_dir + '/Saarang2024/auto-deploy')
-    repo_list = open('repo_list.txt', 'r')
-    new_content = ''
-    old_content = ''
+        cursor.execute("SELECT * FROM repos")
+        repos = cursor.fetchall()
 
-    for line in repo_list:
-        try:
-            repo, type, commit_id = line.split()
-            old_content += line
+        threads = []
+        for repo in repos:
+            repo_path = base_dir + '/' + repo[1]
+            repo_type = repo[2]
+            latest_commit_id = repo[3]
 
-            if type == 'frontend':
-                commit_id = frontend_deploy(repo, commit_id)
+            if(get_latest_commit_id(repo_path) == latest_commit_id):
+                continue
+            else:
+                latest_commit_id = get_latest_commit_id(repo_path)
 
-            elif type == 'backend':
-                commit_id = backend_deploy(repo, commit_id)
+            if(repo_type == 'frontend'):
+                thread = threading.Thread(target=frontend_deploy, args=(repo[1], latest_commit_id,))
+            else:
+                thread = threading.Thread(target=backend_deploy, args=(repo[1], latest_commit_id,))
 
-            new_content += repo + ' ' + type + ' ' + commit_id + '\n'
-        
-        except Exception as e:
-            print(e)
-            continue
+            thread.start()
+            threads.append(thread)
 
-    repo_list.close()
-
-    if(not (new_content == old_content) ):
-        with open('repo_list.txt', 'wb', 0) as repo_list:
-            repo_list.write(new_content.encode())
-            repo_list.flush()
-            os.fsync(repo_list.fileno())
-            print("Updated repo_list.txt")
-        
-        repo_list.close()
+        for thread in threads:
+            thread.join()
+    
+    except:
+        logToFile('Error while checking for updates')
 
     time.sleep(sleep_time)
-    
-    

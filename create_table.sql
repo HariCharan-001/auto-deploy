@@ -1,0 +1,8 @@
+CREATE TABLE repos (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY, 
+  repo VARCHAR NOT NULL, 
+  type VARCHAR NOT NULL, 
+  latest_commit_id VARCHAR NOT NULL DEFAULT '0', 
+  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, 
+  status VARCHAR NOT NULL DEFAULT 'idle'
+);
