@@ -91,7 +91,7 @@ def backend_deploy(repo, latest_commit_id):
 
         run_command('pm2 stop ' + repo)
         run_command('pm2 start dist/index.js --name ' + cur_repo + ' -- prod ' + db_pwd)
-        logToFile('Restarted ' + repo)
+        logToFile('Restarted ' + repo + '\n')
 
         repo_status[cur_repo] = 'running'
     
@@ -110,7 +110,7 @@ logToFile('Connected to PostgreSQL' + '\n' )
 
 while(True):
     try:
-        logToFile("Checking for updates: " + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + '\n')
+        logToFile("Checking for updates: " + '\n')
 
         cursor.execute("SELECT * FROM repos")
         repos = cursor.fetchall()
