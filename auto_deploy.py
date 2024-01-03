@@ -9,7 +9,7 @@ db_pwd = 'postgres'
 sleep_time = int(30)
 cur_repo = ''
 log_dir = base_dir + '/Saarang2024/auto-deploy/logs'
-univ_log_file = log_dir + './auto_deploy.log'
+univ_log_file = log_dir + '/auto_deploy.log'
 repo_status = {}
 
 if(len(sys.argv) > 1):
