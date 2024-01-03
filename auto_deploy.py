@@ -28,7 +28,7 @@ def establish_connection():
             database = "auto_deploy"
         )
 
-        logToFile(connection.get_dsn_parameters() + "\n")
+        logToFile(str(connection.get_dsn_parameters()) + "\n")
 
     except (Exception, psycopg2.Error) as error :
         logToFile("Error while connecting to PostgreSQL : " + str(error)) 
