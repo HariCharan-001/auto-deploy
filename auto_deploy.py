@@ -58,7 +58,7 @@ def get_latest_commit_id(repo_path):
 
 def update_repo(repo, latest_commit_id, repo_status):
     global cursor, connection
-    cursor.execute("UPDATE repos SET latest_commit_id = '%s', repo_status = '%s', last_updated = '%s' WHERE repo = '%s'" % (latest_commit_id, repo_status, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), repo))
+    cursor.execute("UPDATE repos SET latest_commit_id = '%s', status = '%s', last_updated = '%s' WHERE repo = '%s'" % (latest_commit_id, repo_status, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), repo))
     connection.commit()
 
 def frontend_deploy(repo, latest_commit_id):
