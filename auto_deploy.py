@@ -66,6 +66,7 @@ def frontend_deploy(repo, latest_commit_id):
     cur_repo = repo.split('/')[-1]
 
     try:
+        logToFile('Deploying ' + repo + '\n')
         run_command('npm install')
         run_command('npm run build')
         logToFile('build successful for ' + repo + '\n')
@@ -83,6 +84,7 @@ def backend_deploy(repo, latest_commit_id):
     cur_repo = repo.split('/')[-1]
 
     try:
+        logToFile('Deploying ' + repo + '\n')
         run_command('yarn install')
         run_command('yarn build')
         logToFile('build successful for ' + repo + '\n')
@@ -120,9 +122,12 @@ while(True):
             latest_commit_id = repo[3]
 
             if(get_latest_commit_id(repo_path) == latest_commit_id):
+                logToFile('Latest commit id: ' + latest_commit_id + ', No updates found for ' + repo[1] + '\n')
                 continue
+
             else:
                 latest_commit_id = get_latest_commit_id(repo_path)
+                logToFile('Latest commit id: ' + latest_commit_id + ', Updates found for ' + repo[1] + '\n')
 
             if(repo_type == 'frontend'):
                 thread = threading.Thread(target=frontend_deploy, args=(repo[1], latest_commit_id,))
@@ -135,7 +140,7 @@ while(True):
         for thread in threads:
             thread.join()
     
-    except:
-        logToFile('Error while checking for updates')
+    except (Exception, psycopg2.Error) as error :
+        logToFile("Error while fetching data from PostgreSQL : " + str(error))
 
     time.sleep(sleep_time)
