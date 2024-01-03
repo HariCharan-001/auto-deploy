@@ -22,7 +22,7 @@ def establish_connection():
     try:
         connection = psycopg2.connect(
             user = "postgres",
-            password = "postgres",
+            password = db_pwd,
             host = "127.0.0.1",
             port = "5432",
             database = "auto_deploy"
