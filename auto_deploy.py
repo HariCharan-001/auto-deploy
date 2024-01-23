@@ -91,8 +91,7 @@ def backend_deploy(repo, latest_commit_id):
         run_command('yarn build')
         logToFile('build successful for ' + repo + '\n')
 
-        run_command('pm2 stop ' + repo)
-        run_command('pm2 start dist/index.js --name ' + cur_repo + ' -- prod ' + db_pwd)
+        run_command('pm2 restart dist/index.js --name ' + cur_repo + ' -- prod ' + db_pwd)
         logToFile('Restarted ' + repo + '\n')
 
         repo_status[cur_repo] = 'running'
