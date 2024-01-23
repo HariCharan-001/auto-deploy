@@ -1,0 +1,1 @@
+INSERT INTO repos (repo, type) values ('CSA/registrations-frontend', 'frontend');

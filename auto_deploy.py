@@ -4,12 +4,13 @@ import sys
 import psycopg2
 import threading 
 
+# config variables, remain constant throughout the execution
 base_dir = '/var/www'
 db_pwd = 'postgres'
 sleep_time = int(30)
-cur_repo = ''
 log_dir = base_dir + '/Saarang2024/auto-deploy/logs'
 univ_log_file = log_dir + '/auto_deploy.log'
+
 repo_status = {}
 
 if(len(sys.argv) > 1):
@@ -43,16 +44,15 @@ def logToFile(message):
         log.write(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + ' ' + message + '\n')
         log.close()
 
-def run_command(command):
-    global cur_repo, log_dir
+def run_command(command, repo_path):
+    global log_dir
 
-    log_path = log_dir + '/' + cur_repo + '.log'
-    os.system(command + ' >> ' + log_path + ' 2>&1')
+    log_path = log_dir + '/' + repo_path.split('/')[-1] + '.log'
+    os.system(f'cd {repo_path} && {command} >> {log_path} 2>&1')
 
 def get_latest_commit_id(repo_path):
-    os.chdir(repo_path)
-    run_command('git pull')
-    latest_commit_id = os.popen('git rev-parse HEAD').read().strip()
+    run_command(f'cd {repo_path} && git pull')
+    latest_commit_id = os.popen(f'cd {repo_path} && git rev-parse HEAD').read().strip()
 
     return latest_commit_id
 
@@ -62,7 +62,7 @@ def update_repo(repo, latest_commit_id, repo_status):
     connection.commit()
 
 def frontend_deploy(repo, latest_commit_id):
-    global cur_repo, repo_status
+    global repo_status
     cur_repo = repo.split('/')[-1]
 
     try:
@@ -80,7 +80,7 @@ def frontend_deploy(repo, latest_commit_id):
     update_repo(repo, latest_commit_id, repo_status[cur_repo])
 
 def backend_deploy(repo, latest_commit_id):
-    global cur_repo, repo_status
+    global repo_status
     cur_repo = repo.split('/')[-1]
 
     try:
@@ -115,8 +115,11 @@ while(True):
         cursor.execute("SELECT * FROM repos")
         repos = cursor.fetchall()
 
-        threads = []
         for repo in repos:
+            # skip if repo is disabled
+            if(repo[6] == 'false'):
+                continue
+
             repo_path = base_dir + '/' + repo[1]
             repo_type = repo[2]
             latest_commit_id = repo[3]
@@ -129,15 +132,13 @@ while(True):
                 latest_commit_id = get_latest_commit_id(repo_path)
                 logToFile('Latest commit id: ' + latest_commit_id + ', Updates found for ' + repo[1] + '\n')
 
+            thread = None
             if(repo_type == 'frontend'):
                 thread = threading.Thread(target=frontend_deploy, args=(repo[1], latest_commit_id,))
             else:
                 thread = threading.Thread(target=backend_deploy, args=(repo[1], latest_commit_id,))
 
             thread.start()
-            threads.append(thread)
-
-        for thread in threads:
             thread.join()
     
     except (Exception, psycopg2.Error) as error :
