@@ -11,6 +11,7 @@ sleep_time = int(30)
 log_dir = base_dir + '/Saarang2024/auto-deploy/logs'
 univ_log_file = log_dir + '/auto_deploy.log'
 
+cur_repo = ''
 repo_status = {}
 
 if(len(sys.argv) > 1):
@@ -44,15 +45,16 @@ def logToFile(message):
         log.write(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + ' ' + message + '\n')
         log.close()
 
-def run_command(command, repo_path):
-    global log_dir
+def run_command(command):
+    global cur_repo, log_dir
 
-    log_path = log_dir + '/' + repo_path.split('/')[-1] + '.log'
-    os.system(f'cd {repo_path} && {command} >> {log_path} 2>&1')
+    log_path = log_dir + '/' + cur_repo + '.log'
+    os.system(command + ' >> ' + log_path + ' 2>&1')
 
 def get_latest_commit_id(repo_path):
-    run_command(f'cd {repo_path} && git pull')
-    latest_commit_id = os.popen(f'cd {repo_path} && git rev-parse HEAD').read().strip()
+    os.chdir(repo_path)
+    run_command('git pull')
+    latest_commit_id = os.popen('git rev-parse HEAD').read().strip()
 
     return latest_commit_id
 
@@ -62,7 +64,7 @@ def update_repo(repo, latest_commit_id, repo_status):
     connection.commit()
 
 def frontend_deploy(repo, latest_commit_id):
-    global repo_status
+    global cur_repo, repo_status
     cur_repo = repo.split('/')[-1]
 
     try:
@@ -80,7 +82,7 @@ def frontend_deploy(repo, latest_commit_id):
     update_repo(repo, latest_commit_id, repo_status[cur_repo])
 
 def backend_deploy(repo, latest_commit_id):
-    global repo_status
+    global cur_repo, repo_status
     cur_repo = repo.split('/')[-1]
 
     try:
@@ -112,12 +114,18 @@ while(True):
     try:
         logToFile("Checking for updates: " + '\n')
 
-        cursor.execute("SELECT * FROM repos")
-        repos = cursor.fetchall()
+        try:
+            cursor.execute("SELECT * FROM repos")
+            repos = cursor.fetchall()
+
+        except(Exception, psycopg2.Error) as error:
+            logToFile("Error while fetching data from repos table: " + str(error))
+            continue
 
         for repo in repos:
             # skip if repo is disabled
             if(repo[6] == 'false'):
+                logToFile('Skipping ' + repo[1] + ' as it is disabled' + '\n')
                 continue
 
             repo_path = base_dir + '/' + repo[1]
@@ -142,6 +150,6 @@ while(True):
             thread.join()
     
     except (Exception, psycopg2.Error) as error :
-        logToFile("Error while fetching data from PostgreSQL : " + str(error))
+        logToFile("Error : " + str(error))
 
     time.sleep(sleep_time)
