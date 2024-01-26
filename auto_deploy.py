@@ -3,6 +3,9 @@ import time
 import sys
 import psycopg2
 import threading 
+import random
+import logging
+from logging.handlers import RotatingFileHandler
 
 # config variables, remain constant throughout the execution
 base_dir = '/var/www'
@@ -10,6 +13,7 @@ db_pwd = 'postgres'
 sleep_time = int(30)
 log_dir = base_dir + '/Saarang2024/auto-deploy/logs'
 univ_log_file = log_dir + '/auto_deploy.log'
+max_log_file_size = 5   # in MB
 
 cur_repo = ''
 repo_status = {}
@@ -30,26 +34,39 @@ def establish_connection():
             database = "auto_deploy"
         )
 
-        logToFile(str(connection.get_dsn_parameters()) + "\n")
+        logger.info(str(connection.get_dsn_parameters()) + "\n")
 
     except (Exception, psycopg2.Error) as error :
-        logToFile("Error while connecting to PostgreSQL : " + str(error)) 
+        logger.info("Error while connecting to PostgreSQL : " + str(error)) 
         exit()
 
     return connection
 
-def logToFile(message):
-    global univ_log_file
+# create a log file handler that rotates log files when they reach max_log_file_size
+handler = RotatingFileHandler(univ_log_file, maxBytes= max_log_file_size * 1000 * 1000, backupCount=5)     
 
-    with open(univ_log_file, 'a') as log:
-        log.write(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + ' ' + message + '\n')
-        log.close()
+# create a formatter that includes the timestamp, log level, and message
+formatter = logging.Formatter('%(asctime)s %(message)s\n', datefmt='%Y-%m-%d %H:%M:%S')
+
+# set the formatter for the handler
+handler.setFormatter(formatter)
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.addHandler(handler)
+
 
 def run_command(command):
     global cur_repo, log_dir
 
     log_path = log_dir + '/' + cur_repo + '.log'
     os.system(command + ' >> ' + log_path + ' 2>&1')
+
+    log_file_size = os.path.getsize(log_path) / 1000 / 1000
+    if(log_file_size > max_log_file_size):
+        os.system('rm ' + log_path)
+        logger.info('Removed log file ' + log_path + ' as it exceeded max size of ' + str(max_log_file_size) + ' MB' + '\n')
+        os.system('touch ' + log_path)
 
 def get_latest_commit_id(repo_path):
     os.chdir(repo_path)
@@ -68,15 +85,15 @@ def frontend_deploy(repo, latest_commit_id):
     cur_repo = repo.split('/')[-1]
 
     try:
-        logToFile('Deploying ' + repo + '\n')
+        logger.info('Deploying ' + repo + '\n')
         run_command('npm install')
         run_command('npm run build')
-        logToFile('build successful for ' + repo + '\n')
+        logger.info('build successful for ' + repo + '\n')
 
         repo_status[cur_repo] = 'running'
 
     except:
-        logToFile('build failed for ' + repo + '\n')
+        logger.info('build failed for ' + repo + '\n')
         repo_status[cur_repo] = 'failed'
 
     update_repo(repo, latest_commit_id, repo_status[cur_repo])
@@ -86,18 +103,18 @@ def backend_deploy(repo, latest_commit_id):
     cur_repo = repo.split('/')[-1]
 
     try:
-        logToFile('Deploying ' + repo + '\n')
+        logger.info('Deploying ' + repo + '\n')
         run_command('yarn install')
         run_command('yarn build')
-        logToFile('build successful for ' + repo + '\n')
+        logger.info('build successful for ' + repo + '\n')
 
         run_command('pm2 restart dist/index.js --name ' + cur_repo + ' -- prod ' + db_pwd)
-        logToFile('Restarted ' + repo + '\n')
+        logger.info('Restarted ' + repo + '\n')
 
         repo_status[cur_repo] = 'running'
     
     except:
-        logToFile('failed to deploy ' + repo + '\n')
+        logger.info('failed to deploy ' + repo + '\n')
         repo_status[cur_repo] = 'failed'
 
     update_repo(repo, latest_commit_id, repo_status[cur_repo])
@@ -107,24 +124,24 @@ def backend_deploy(repo, latest_commit_id):
 
 connection = establish_connection()
 cursor = connection.cursor()
-logToFile('Connected to PostgreSQL' + '\n' )
+logger.info('Connected to PostgreSQL' + '\n' )
 
 while(True):
     try:
-        logToFile("Checking for updates: " + '\n')
+        logger.info("Checking for updates: " + '\n')
 
         try:
             cursor.execute("SELECT * FROM repos")
             repos = cursor.fetchall()
 
         except(Exception, psycopg2.Error) as error:
-            logToFile("Error while fetching data from repos table: " + str(error))
+            logger.info("Error while fetching data from repos table: " + str(error))
             continue
 
         for repo in repos:
             # skip if repo is disabled
             if(repo[6] == 'false'):
-                logToFile('Skipping ' + repo[1] + ' as it is disabled' + '\n')
+                logger.info('Skipping ' + repo[1] + ' as it is disabled' + '\n')
                 continue
 
             repo_path = base_dir + '/' + repo[1]
@@ -132,12 +149,12 @@ while(True):
             latest_commit_id = repo[3]
 
             if(get_latest_commit_id(repo_path) == latest_commit_id):
-                logToFile('Latest commit id: ' + latest_commit_id + ', No updates found for ' + repo[1] + '\n')
+                logger.info('Latest commit id: ' + latest_commit_id + ', No updates found for ' + repo[1] + '\n')
                 continue
 
             else:
                 latest_commit_id = get_latest_commit_id(repo_path)
-                logToFile('Latest commit id: ' + latest_commit_id + ', Updates found for ' + repo[1] + '\n')
+                logger.info('Latest commit id: ' + latest_commit_id + ', Updates found for ' + repo[1] + '\n')
 
             thread = None
             if(repo_type == 'frontend'):
@@ -149,6 +166,6 @@ while(True):
             thread.join()
     
     except (Exception, psycopg2.Error) as error :
-        logToFile("Error : " + str(error))
+        logger.info("Error : " + str(error))
 
     time.sleep(sleep_time)
