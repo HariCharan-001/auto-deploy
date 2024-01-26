@@ -11,7 +11,7 @@ from logging.handlers import RotatingFileHandler
 base_dir = '/var/www'
 db_pwd = 'postgres'
 sleep_time = int(30)
-log_dir = '~/auto-deploy/logs'
+log_dir = '/logs'
 univ_log_file = log_dir + '/auto_deploy.log'
 max_log_file_size = 5   # in MB
 
